@@ -1,5 +1,5 @@
 import os
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Header
 from pydantic import BaseModel
 from dotenv import load_dotenv
 
@@ -21,13 +21,20 @@ async def root():
     return {"status": "online", "message": "Multi-Agent Copilot is running"}
 
 @app.post("/api/v1/research")
-async def trigger_research_workflow(request: ResearchRequest):
-    if not os.getenv("OPENAI_API_KEY"):
-        raise HTTPException(status_code=500, detail="OpenAI API Key is missing in environment configuration.")
+async def trigger_research_workflow(request: ResearchRequest, x_api_key: str = Header(None)):
+    # Pehle check karega ki environment me key hai ya nahi, 
+    # agar nahi hai toh check karega ki user ne Header (X-API-Key) me bheji hai ya nahi.
+    api_key = os.getenv("OPENAI_API_KEY") or x_api_key
+    
+    if not api_key:
+        raise HTTPException(
+            status_code=400, 
+            detail="OpenAI API Key is missing. Please provide it in the 'X-API-Key' Header to test the endpoint."
+        )
     
     try:
         # Mock execution response of LangGraph State Graph & CrewAI execution
-        # In production, this triggers your graph compiled workflow: app = workflow.compile()
+        # Note: Jab aap actual workflow lagayein, toh llm initialize karte waqt 'openai_api_key=api_key' pass karein.
         return {
             "status": "success",
             "topic": request.topic,
